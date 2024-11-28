@@ -41,10 +41,8 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn import CrossEntropyLoss, MSELoss, MultiLabelSoftMarginLoss, BCEWithLogitsLoss
 
-from transformers import AutoTokenizer
-
 from bert_utils.file_utils import WEIGHTS_NAME, CONFIG_NAME
-from modeling import GCNclassification, PHOBERT_MODEL
+from modeling import GCNclassification
 from bert_utils.tokenization import BertTokenizer
 from bert_utils.optimization import BertAdam, WarmupLinearSchedule
 
@@ -229,10 +227,7 @@ def main():
 
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
-    if args.bert_model not in PHOBERT_MODEL:
-        tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
-    else:
-        tokenizer = AutoTokenizer.from_pretrained(PHOBERT_MODEL[args.bert_model])
+    tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
     model_dict = {
         'GCN': GCNclassification,
     }
@@ -399,8 +394,7 @@ def main():
 
                     torch.save(model_to_save.state_dict(), output_model_file)
                     model_to_save.config.to_json_file(output_config_file)
-                    if args.bert_model not in PHOBERT_MODEL:
-                        tokenizer.save_vocabulary(dirs_name)
+                    tokenizer.save_vocabulary(dirs_name)
 
                     fold_result, fold_fix_result = hier_pred_eval(args, 1, train_category_map_gpu, logger, model, eval_dataloader, device, task_name, eval_type='test')
                     max_macro_F1 = result['micro-f1']
