@@ -37,11 +37,35 @@ from bert_utils.file_utils import cached_path, WEIGHTS_NAME, CONFIG_NAME
 logger = logging.getLogger(__name__)
 
 PRETRAINED_MODEL_ARCHIVE_MAP = {
-    'bert-base-uncased': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-pytorch_model.bin",
+    'bert-base-uncased': "https://huggingface.co/google-bert/bert-base-uncased/resolve/main/pytorch_model.bin",
+    'bert-large-uncased': "https://huggingface.co/google-bert/bert-large-uncased/resolve/main/pytorch_model.bin",
+    'bert-base-cased': "https://huggingface.co/google-bert/bert-base-cased/resolve/main/pytorch_model.bin",
+    'bert-large-cased': "https://huggingface.co/google-bert/bert-large-cased/resolve/main/pytorch_model.bin",
+    'bert-base-multilingual-uncased': "https://huggingface.co/google-bert/bert-base-multilingual-uncased/resolve/main/pytorch_model.bin",
+    'bert-base-multilingual-cased': "https://huggingface.co/google-bert/bert-base-multilingual-cased/resolve/main/pytorch_model.bin",
+    'bert-base-chinese': "https://huggingface.co/google-bert/bert-base-chinese/resolve/main/pytorch_model.bin",
+    'bert-base-german-cased': "https://huggingface.co/google-bert/bert-base-german-cased/resolve/main/pytorch_model.bin",
+    'bert-large-uncased-whole-word-masking': "https://huggingface.co/google-bert/bert-large-uncased-whole-word-masking/resolve/main/pytorch_model.bin",
+    'bert-large-cased-whole-word-masking': "https://huggingface.co/google-bert/bert-large-cased-whole-word-masking/resolve/main/pytorch_model.bin",
+    'bert-large-uncased-whole-word-masking-finetuned-squad': "https://huggingface.co/google-bert/bert-large-uncased-whole-word-masking-finetuned-squad/resolve/main/pytorch_model.bin",
+    'bert-large-cased-whole-word-masking-finetuned-squad': "https://huggingface.co/google-bert/bert-large-cased-whole-word-masking-finetuned-squad/resolve/main/pytorch_model.bin",
+    'bert-base-cased-finetuned-mrpc': "https://huggingface.co/google-bert/bert-base-cased-finetuned-mrpc/resolve/main/pytorch_model.bin",
 
 }
 PRETRAINED_CONFIG_ARCHIVE_MAP = {
-    'bert-base-uncased': "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-config.json",
+    'bert-base-uncased': "https://huggingface.co/google-bert/bert-base-uncased/resolve/main/config.json",
+    'bert-large-uncased': "https://huggingface.co/google-bert/bert-large-uncased/resolve/main/config.json",
+     'bert-base-cased': "https://huggingface.co/google-bert/bert-base-cased/resolve/main/config.json",
+    'bert-large-cased': "https://huggingface.co/google-bert/bert-large-cased/resolve/main/config.json",
+    'bert-base-multilingual-uncased': "https://huggingface.co/google-bert/bert-base-multilingual-uncased/resolve/main/config.json",
+    'bert-base-multilingual-cased': "https://huggingface.co/google-bert/bert-base-multilingual-cased/resolve/main/config.json",
+    'bert-base-chinese': "https://huggingface.co/google-bert/bert-base-chinese/resolve/main/config.json",
+    'bert-base-german-cased': "https://huggingface.co/google-bert/bert-base-german-cased/resolve/main/config.json",
+    'bert-large-uncased-whole-word-masking': "https://huggingface.co/google-bert/bert-large-uncased-whole-word-masking/resolve/main/config.json",
+    'bert-large-cased-whole-word-masking': "https://huggingface.co/google-bert/bert-large-cased-whole-word-masking/resolve/main/config.json",
+    'bert-large-uncased-whole-word-masking-finetuned-squad': "https://huggingface.co/google-bert/bert-large-uncased-whole-word-masking-finetuned-squad/resolve/main/config.json",
+    'bert-large-cased-whole-word-masking-finetuned-squad': "https://huggingface.co/google-bert/bert-large-cased-whole-word-masking-finetuned-squad/resolve/main/config.json",
+    'bert-base-cased-finetuned-mrpc': "https://huggingface.co/google-bert/bert-base-cased-finetuned-mrpc/resolve/main/config.json",
 }
 BERT_CONFIG_NAME = 'bert_config.json'
 TF_WEIGHTS_NAME = 'model.ckpt'
