@@ -673,7 +673,7 @@ class BertPreTrainedModel(nn.Module):
             archive_file = PRETRAINED_MODEL_ARCHIVE_MAP[pretrained_model_name_or_path]
             config_file = PRETRAINED_CONFIG_ARCHIVE_MAP[pretrained_model_name_or_path]
         elif pretrained_model_name_or_path in PHOBERT_MODEL:
-            return AutoModel.from_pretrained(PHOBERT_MODEL[pretrained_model_name_or_path])
+            phobert = AutoModel.from_pretrained(PHOBERT_MODEL[pretrained_model_name_or_path])
         else:
             if from_tf:
                 # Directly load from a TensorFlow checkpoint
@@ -777,6 +777,9 @@ class BertPreTrainedModel(nn.Module):
         if len(error_msgs) > 0:
             raise RuntimeError('Error(s) in loading state_dict for {}:\n\t{}'.format(
                                model.__class__.__name__, "\n\t".join(error_msgs)))
+        
+        if pretrained_model_name_or_path in PHOBERT_MODEL:
+            model.bert = phobert
         return model
 
 
