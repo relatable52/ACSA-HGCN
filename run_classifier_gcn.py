@@ -41,7 +41,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn import CrossEntropyLoss, MSELoss, MultiLabelSoftMarginLoss, BCEWithLogitsLoss
 
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, RobertaModel
 
 from bert_utils.file_utils import WEIGHTS_NAME, CONFIG_NAME
 from modeling import GCNclassification, PHOBERT_MODEL
