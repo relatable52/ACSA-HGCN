@@ -31,10 +31,18 @@ from torch import nn
 from torch.nn import CrossEntropyLoss, MultiLabelSoftMarginLoss, BCEWithLogitsLoss
 from torchcrf import CRF
 import torch.nn.functional as F
+from transformers import AutoModel
+
 
 from bert_utils.file_utils import cached_path, WEIGHTS_NAME, CONFIG_NAME
 
 logger = logging.getLogger(__name__)
+
+PHOBERT_MODEL = {
+    'phobert-base': 'vinai/phobert-base', 
+    'phobert-large': 'vinai/phobert-large',
+    'phobert-base-v2': 'vinai/phobert-base-v2'
+}
 
 PRETRAINED_MODEL_ARCHIVE_MAP = {
     'bert-base-uncased': "https://huggingface.co/google-bert/bert-base-uncased/resolve/main/pytorch_model.bin",
@@ -49,7 +57,7 @@ PRETRAINED_MODEL_ARCHIVE_MAP = {
     'bert-large-cased-whole-word-masking': "https://huggingface.co/google-bert/bert-large-cased-whole-word-masking/resolve/main/pytorch_model.bin",
     'bert-large-uncased-whole-word-masking-finetuned-squad': "https://huggingface.co/google-bert/bert-large-uncased-whole-word-masking-finetuned-squad/resolve/main/pytorch_model.bin",
     'bert-large-cased-whole-word-masking-finetuned-squad': "https://huggingface.co/google-bert/bert-large-cased-whole-word-masking-finetuned-squad/resolve/main/pytorch_model.bin",
-    'bert-base-cased-finetuned-mrpc': "https://huggingface.co/google-bert/bert-base-cased-finetuned-mrpc/resolve/main/pytorch_model.bin",
+    'bert-base-cased-finetuned-mrpc': "https://huggingface.co/google-bert/bert-base-cased-finetuned-mrpc/resolve/main/pytorch_model.bin"
 
 }
 PRETRAINED_CONFIG_ARCHIVE_MAP = {
@@ -65,7 +73,7 @@ PRETRAINED_CONFIG_ARCHIVE_MAP = {
     'bert-large-cased-whole-word-masking': "https://huggingface.co/google-bert/bert-large-cased-whole-word-masking/resolve/main/config.json",
     'bert-large-uncased-whole-word-masking-finetuned-squad': "https://huggingface.co/google-bert/bert-large-uncased-whole-word-masking-finetuned-squad/resolve/main/config.json",
     'bert-large-cased-whole-word-masking-finetuned-squad': "https://huggingface.co/google-bert/bert-large-cased-whole-word-masking-finetuned-squad/resolve/main/config.json",
-    'bert-base-cased-finetuned-mrpc': "https://huggingface.co/google-bert/bert-base-cased-finetuned-mrpc/resolve/main/config.json",
+    'bert-base-cased-finetuned-mrpc': "https://huggingface.co/google-bert/bert-base-cased-finetuned-mrpc/resolve/main/config.json"
 }
 BERT_CONFIG_NAME = 'bert_config.json'
 TF_WEIGHTS_NAME = 'model.ckpt'
@@ -664,6 +672,8 @@ class BertPreTrainedModel(nn.Module):
         if pretrained_model_name_or_path in PRETRAINED_MODEL_ARCHIVE_MAP:
             archive_file = PRETRAINED_MODEL_ARCHIVE_MAP[pretrained_model_name_or_path]
             config_file = PRETRAINED_CONFIG_ARCHIVE_MAP[pretrained_model_name_or_path]
+        elif pretrained_model_name_or_path in PHOBERT_MODEL:
+            return AutoModel.from_pretrained(PHOBERT_MODEL[pretrained_model_name_or_path])
         else:
             if from_tf:
                 # Directly load from a TensorFlow checkpoint
