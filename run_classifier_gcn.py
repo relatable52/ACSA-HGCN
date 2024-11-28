@@ -346,10 +346,25 @@ def main():
 
                     # define a new function to compute loss values for both output_modes
                     if args.model_type != 'Baseline_1' and args.model_type != 'AddOD':
-                        loss, c_loss, s_loss, category_logits, sentiment_logits = model(_e, train_category_map_gpu, _input_ids, token_type_ids=_segment_ids, attention_mask=_input_mask,
-                            cate_labels=_category_label_ids, senti_labels=_sentiment_label_ids)
+                        if isinstance(model, RobertaModel):  # Check if the model is RoBERTa
+                            loss, c_loss, s_loss, category_logits, sentiment_logits = model(
+                                _e, train_category_map_gpu, _input_ids, attention_mask=_input_mask,
+                                cate_labels=_category_label_ids, senti_labels=_sentiment_label_ids
+                            )
+                        else:  # For BERT or other models that use token_type_ids
+                            loss, c_loss, s_loss, category_logits, sentiment_logits = model(
+                                _e, train_category_map_gpu, _input_ids, token_type_ids=_segment_ids, attention_mask=_input_mask,
+                                cate_labels=_category_label_ids, senti_labels=_sentiment_label_ids
+                            )
                     else:
-                        logits, loss = model(_input_ids, token_type_ids=_segment_ids, attention_mask=_input_mask, senti_labels=_sentiment_label_ids)
+                        if isinstance(model, RobertaModel):  # Check if the model is RoBERTa
+                            logits, loss = model(
+                                _input_ids, attention_mask=_input_mask, senti_labels=_sentiment_label_ids
+                            )
+                        else:  # For BERT or other models that use token_type_ids
+                            logits, loss = model(
+                                _input_ids, token_type_ids=_segment_ids, attention_mask=_input_mask, senti_labels=_sentiment_label_ids
+                            )
                         c_loss = None
                         s_loss = None
 
