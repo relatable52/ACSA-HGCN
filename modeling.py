@@ -31,7 +31,7 @@ from torch import nn
 from torch.nn import CrossEntropyLoss, MultiLabelSoftMarginLoss, BCEWithLogitsLoss
 from torchcrf import CRF
 import torch.nn.functional as F
-from transformers import AutoModel
+from transformers import AutoModel, RobertaModel
 
 
 from bert_utils.file_utils import cached_path, WEIGHTS_NAME, CONFIG_NAME
