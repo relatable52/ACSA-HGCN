@@ -1994,7 +1994,10 @@ class GCNclassification(BertPreTrainedModel):
         self.apply(self.init_bert_weights)
 
     def forward(self, epoch, category_map, input_ids, token_type_ids=None, attention_mask=None, cate_labels=None, senti_labels=None, head_mask=None):
-        pooled_outputs, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=True, head_mask=head_mask)
+        if isinstance(self.bert, RobertaModel):
+            pooled_outputs, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, output_hidden_states=True, head_mask=head_mask)
+        else:
+            pooled_outputs, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=True, head_mask=head_mask)
         category_pooled_output = [self.attention[i](pooled_outputs[-1], attention_mask) for i in range(self.num_labels[0])]
         category_pooled_output = [self.dropout[0](category_pooled_output[i]) for i in range(self.num_labels[0])]
 
