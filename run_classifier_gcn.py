@@ -41,8 +41,10 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn import CrossEntropyLoss, MSELoss, MultiLabelSoftMarginLoss, BCEWithLogitsLoss
 
+from transformers import AutoTokenizer
+
 from bert_utils.file_utils import WEIGHTS_NAME, CONFIG_NAME
-from modeling import GCNclassification
+from modeling import GCNclassification, PhoBERTGCN, PHOBERT_MODEL
 from bert_utils.tokenization import BertTokenizer
 from bert_utils.optimization import BertAdam, WarmupLinearSchedule
 
@@ -227,9 +229,13 @@ def main():
 
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
-    tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
+    if args.bert_model not in PHOBERT_MODEL:
+        tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(PHOBERT_MODEL[args.bert_model])
     model_dict = {
         'GCN': GCNclassification,
+        'PHOBERT': PhoBERTGCN,
     }
 
     global_step = 0
@@ -288,7 +294,10 @@ def main():
         for fold, (train_index, eval_index) in enumerate(kf.split(input_ids)):
             print('Fold {}/{}'.format(fold+1, 10))
 
-            model = model_dict[args.model_type].from_pretrained(args.bert_model, num_labels=num_labels)
+            if args.model not in PHOBERT_MODEL:
+                model = model_dict[args.model_type].from_pretrained(args.bert_model, num_labels=num_labels)
+            else:
+                model = PhoBERTGCN(args.model, num_labels=num_labels)
             if args.local_rank == 0:
                 torch.distributed.barrier()
 

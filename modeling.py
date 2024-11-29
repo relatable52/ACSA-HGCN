@@ -31,15 +31,15 @@ from torch import nn
 from torch.nn import CrossEntropyLoss, MultiLabelSoftMarginLoss, BCEWithLogitsLoss
 from torchcrf import CRF
 import torch.nn.functional as F
-from transformers import AutoModel, RobertaModel
 
+from transformers import AutoModel, AutoConfig
 
 from bert_utils.file_utils import cached_path, WEIGHTS_NAME, CONFIG_NAME
 
 logger = logging.getLogger(__name__)
 
 PHOBERT_MODEL = {
-    'phobert-base': 'vinai/phobert-base', 
+    'phobert-base': 'vinai/phobert-base',
     'phobert-large': 'vinai/phobert-large',
     'phobert-base-v2': 'vinai/phobert-base-v2'
 }
@@ -672,14 +672,6 @@ class BertPreTrainedModel(nn.Module):
         if pretrained_model_name_or_path in PRETRAINED_MODEL_ARCHIVE_MAP:
             archive_file = PRETRAINED_MODEL_ARCHIVE_MAP[pretrained_model_name_or_path]
             config_file = PRETRAINED_CONFIG_ARCHIVE_MAP[pretrained_model_name_or_path]
-        elif pretrained_model_name_or_path in PHOBERT_MODEL:
-            phobert = AutoModel.from_pretrained(PHOBERT_MODEL[pretrained_model_name_or_path])
-            config_file = PRETRAINED_CONFIG_ARCHIVE_MAP['bert-base-cased']
-            resolved_config_file = cached_path(config_file, cache_dir=cache_dir)
-            config = BertConfig.from_json_file(resolved_config_file)
-            model = cls(config, *inputs, **kwargs)
-            model.bert = phobert
-            return model
         else:
             if from_tf:
                 # Directly load from a TensorFlow checkpoint
@@ -783,7 +775,6 @@ class BertPreTrainedModel(nn.Module):
         if len(error_msgs) > 0:
             raise RuntimeError('Error(s) in loading state_dict for {}:\n\t{}'.format(
                                model.__class__.__name__, "\n\t".join(error_msgs)))
-        
         return model
 
 
@@ -1994,10 +1985,121 @@ class GCNclassification(BertPreTrainedModel):
         self.apply(self.init_bert_weights)
 
     def forward(self, epoch, category_map, input_ids, token_type_ids=None, attention_mask=None, cate_labels=None, senti_labels=None, head_mask=None):
-        if isinstance(self.bert, RobertaModel):
-            pooled_outputs, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, output_hidden_states=True, head_mask=head_mask)
-        else:
-            pooled_outputs, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=True, head_mask=head_mask)
+        pooled_outputs, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=True, head_mask=head_mask)
+        category_pooled_output = [self.attention[i](pooled_outputs[-1], attention_mask) for i in range(self.num_labels[0])]
+        category_pooled_output = [self.dropout[0](category_pooled_output[i]) for i in range(self.num_labels[0])]
+
+        sentiment_pooled_output = self.dropout[1](pooled_output)
+
+        bs = sentiment_pooled_output.shape[0]
+        hidden_size = category_pooled_output[0].shape[-1]
+
+        c_feature = torch.cat([torch.unsqueeze(category_pooled_output[i], 1) for i in range(self.num_labels[0])], dim=1)
+        s_feature = torch.unsqueeze(sentiment_pooled_output, 1)
+        s_feature = s_feature.repeat(1, self.num_labels[0], 1)
+
+        map_hat = torch.add(category_map[0], torch.eye(category_map[0].shape[0]).cuda())
+        deg = torch.div(map_hat, torch.diag(map_hat))
+
+        for it in range(self.iter):
+            if it > 0:
+                s_feature = final_features
+                c_feature = torch.cat([c_feature, s_feature], dim=-1)
+                c_feature = self.dropout[2+2*(it-1)+1](self.cs_dense_output[it](c_feature))
+                c_feature = self.gcn_W[it](torch.matmul(deg, c_feature))
+                c_feature = self.CateNorm[it](c_feature)
+
+            final_feature = torch.cat([c_feature, s_feature], dim=-1)
+            final_feature = self.dense_output[it](final_feature)
+            final_features = []
+
+            for i in range(3):
+                cur_feature = final_feature
+                map_hat = torch.add(category_map[1][i], torch.eye(category_map[1][i].shape[0]).cuda())
+                deg = torch.div(map_hat, torch.diag(map_hat))
+                cur_feature = gelu(self.cate_senti_gcnW[3*it+i](torch.matmul(deg, cur_feature)))
+                if i == 0:
+                    final_features = self.dense_outputs[0](cur_feature)
+                else:
+                    final_features = torch.max(final_features, self.dense_outputs[0](cur_feature))
+
+            final_features = self.SentiNorm[it](final_features)
+
+        final_features = self.dropout[-1](final_features)
+
+        sentiment_logits = torch.cat([self.classifier_senti[0](torch.unsqueeze(final_features[:, i, :], 1) ) for i in range(self.num_labels[0])], dim=1)
+        category_logits = torch.cat([self.classifier_cate[i]((c_feature[:, i, :])) for i in range(self.num_labels[0])], dim=-1)
+        cate_loss_fct = BCEWithLogitsLoss()
+        cate_loss = cate_loss_fct(category_logits.view(-1, cate_labels.shape[-1]), cate_labels.view(-1, cate_labels.shape[-1]).float() )
+
+        sm = torch.nn.Softmax(dim = -1)
+        final_sentiment_logits = - torch.log(sm(sentiment_logits))
+        final_sentiment_logits = final_sentiment_logits * senti_labels.float()
+        senti_loss = torch.mean(torch.sum(final_sentiment_logits, dim=-1))
+        loss = cate_loss + senti_loss
+        return loss, cate_loss, senti_loss, category_logits, sentiment_logits
+    
+class PhoBERTGCN(nn.Module):
+    def __init__(self, model_name = 'phobert-base', num_labels=2, output_attentions=False, keep_multihead_output=False):
+        super(PhoBERTGCN, self).__init__()
+        self.output_attentions = output_attentions
+        self.num_labels = [num_labels, 3]
+        config = AutoConfig.from_pretrained(PHOBERT_MODEL[model_name], output_attentions=output_attentions, keep_multihead_output=keep_multihead_output)
+        self.phobert = AutoModel.from_pretrained(PHOBERT_MODEL[model_name], config=config)
+        self.attention = nn.ModuleList([self_attention_layer(config.hidden_size) for _ in range(num_labels)])
+        self.W = nn.ModuleList([
+            nn.Linear(2*config.hidden_size, config.hidden_size) for _ in range(num_labels)
+        ])
+
+        self.iter = 2
+
+        self.gcn_W = nn.ModuleList(
+            [nn.Linear(config.hidden_size, config.hidden_size, bias=False) for i in range(self.iter)]
+        )
+        self.cate_senti_gcnW = nn.ModuleList(
+            [nn.Linear(config.hidden_size, config.hidden_size, bias=False) for i in range(self.iter*3)]
+        )
+
+        self.transformer_layer = nn.ModuleList([TransformerLayer(config.hidden_size) for i in range(3)])
+        self.dense_output = nn.ModuleList([nn.Sequential(
+            nn.Linear(768*2, 768),
+            nn.Tanh(),
+        ) for _ in range(self.iter)])
+        self.cs_dense_output = nn.ModuleList([nn.Sequential(
+            nn.Linear(768*2, 768),
+            nn.Tanh(),
+        ) for _ in range(self.iter)])
+        self.dense_outputs = nn.ModuleList([nn.Sequential(
+            nn.Linear(768, 768),
+            nn.Tanh(),
+        ) for _ in range(self.iter)])
+
+        self.trade_weight = nn.Parameter(torch.ones(num_labels, 3))
+
+        self.dropout = nn.ModuleList([nn.Dropout(config.hidden_dropout_prob) for _ in range(2+2*self.iter+3)])
+        self.classifier_cate = nn.ModuleList([nn.Linear(config.hidden_size, 1) for i in range(num_labels)])
+        self.classifier_senti = nn.ModuleList([nn.Linear(config.hidden_size, self.num_labels[1]) for i in range(num_labels)])
+
+        # self.CateSentiNorm = nn.ModuleList([BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps) for _ in range(3*self.iter)])
+        self.SentiNorm = nn.ModuleList([BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps) for _ in range(3*self.iter)])
+        self.CateNorm = nn.ModuleList([BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps) for _ in range(self.iter)])
+        self.apply(self.init_bert_weights)
+
+    def init_bert_weights(self, module):
+        """ Initialize the weights.
+        """
+        if isinstance(module, (nn.Linear, nn.Embedding)):
+            # Slightly different from the TF version which uses truncated_normal for initialization
+            # cf https://github.com/pytorch/pytorch/pull/5617
+            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+        elif isinstance(module, BertLayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+        if isinstance(module, nn.Linear) and module.bias is not None:
+            module.bias.data.zero_()
+
+    def forward(self, epoch, category_map, input_ids, token_type_ids=None, attention_mask=None, cate_labels=None, senti_labels=None, head_mask=None):
+        pooled_outputs, pooled_output = self.phobert(input_ids, token_type_ids, attention_mask, output_hidden_states=True, head_mask=head_mask)
         category_pooled_output = [self.attention[i](pooled_outputs[-1], attention_mask) for i in range(self.num_labels[0])]
         category_pooled_output = [self.dropout[0](category_pooled_output[i]) for i in range(self.num_labels[0])]
 
