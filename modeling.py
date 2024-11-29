@@ -2083,7 +2083,7 @@ class PhoBERTGCN(nn.Module):
         # self.CateSentiNorm = nn.ModuleList([BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps) for _ in range(3*self.iter)])
         self.SentiNorm = nn.ModuleList([BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps) for _ in range(3*self.iter)])
         self.CateNorm = nn.ModuleList([BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps) for _ in range(self.iter)])
-        self.apply(self.init_bert_weights)
+        # self.apply(self.init_bert_weights)
 
     def init_bert_weights(self, module):
         """ Initialize the weights.
