@@ -297,7 +297,7 @@ def main():
             if args.bert_model not in PHOBERT_MODEL:
                 model = model_dict[args.model_type].from_pretrained(args.bert_model, num_labels=num_labels)
             else:
-                model = PhoBERTGCN(args.model, num_labels=num_labels)
+                model = PhoBERTGCN(args.bert_model, num_labels=num_labels)
             if args.local_rank == 0:
                 torch.distributed.barrier()
 
