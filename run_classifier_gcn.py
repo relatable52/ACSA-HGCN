@@ -353,7 +353,10 @@ def main():
                         print("Max value in input_ids:", _input_ids.max().item())
                         print("Min value in input_ids:", _input_ids.min().item())
                         print("Shape of input_ids:", _input_ids.shape)
-                        print("Vocab size:", model.phobert.config.vocab_size)
+                        print("Vocab size:", model.phobert.config.vocab_size, tokenizer.vocab_size)
+                        print("Attention mask:", _input_mask)
+                        print("Token type IDs:", _segment_ids)
+
                         loss, c_loss, s_loss, category_logits, sentiment_logits = model(_e, train_category_map_gpu, _input_ids, token_type_ids=_segment_ids, attention_mask=_input_mask,
                             cate_labels=_category_label_ids, senti_labels=_sentiment_label_ids)
                     else:
