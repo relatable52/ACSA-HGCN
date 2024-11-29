@@ -2088,15 +2088,18 @@ class PhoBERTGCN(nn.Module):
     def init_bert_weights(self, module):
         """ Initialize the weights.
         """
-        if isinstance(module, (nn.Linear, nn.Embedding)):
-            # Slightly different from the TF version which uses truncated_normal for initialization
-            # cf https://github.com/pytorch/pytorch/pull/5617
-            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-        elif isinstance(module, BertLayerNorm):
-            module.bias.data.zero_()
-            module.weight.data.fill_(1.0)
-        if isinstance(module, nn.Linear) and module.bias is not None:
-            module.bias.data.zero_()
+        if isinstance(module, nn.Linear):
+            # Initialize weights with a normal distribution
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                nn.init.constant_(module.bias, 0.0)
+        elif isinstance(module, nn.Embedding):
+            # Initialize embeddings with a normal distribution
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+        elif isinstance(module, nn.LayerNorm):
+            # Initialize LayerNorm weights and biases
+            nn.init.constant_(module.weight, 1.0)
+            nn.init.constant_(module.bias, 0.0)
 
     def forward(self, epoch, category_map, input_ids, token_type_ids=None, attention_mask=None, cate_labels=None, senti_labels=None, head_mask=None):
         pooled_outputs, pooled_output = self.phobert(input_ids, token_type_ids, attention_mask, output_hidden_states=True, head_mask=head_mask)
