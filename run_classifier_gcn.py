@@ -294,7 +294,7 @@ def main():
         for fold, (train_index, eval_index) in enumerate(kf.split(input_ids)):
             print('Fold {}/{}'.format(fold+1, 10))
 
-            if args.model not in PHOBERT_MODEL:
+            if args.bert_model not in PHOBERT_MODEL:
                 model = model_dict[args.model_type].from_pretrained(args.bert_model, num_labels=num_labels)
             else:
                 model = PhoBERTGCN(args.model, num_labels=num_labels)
