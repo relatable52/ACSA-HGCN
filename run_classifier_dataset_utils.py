@@ -112,8 +112,8 @@ class JCSCProcessor(DataProcessor):
 
     def get_labels(self, domain_type):
         """See base class."""
-        entity = None
-        attribute = None
+        entity = []
+        attribute = []
         sentiment = None
         if domain_type == 'restaurant':
             entity = ['FOOD', 'DRINKS', 'SERVICE', 'AMBIENCE', 'LOCATION', 'RESTAURANT']
@@ -132,6 +132,26 @@ class JCSCProcessor(DataProcessor):
             for att in attribute:
                 string = e+'#'+att
                 l.append(string)
+        
+        if domain_type == 'viethotel':
+            l = ['FACILITIES#CLEANLINESS', 'FACILITIES#COMFORT',
+       'FACILITIES#DESIGN&FEATURES', 'FACILITIES#GENERAL',
+       'FACILITIES#MISCELLANEOUS', 'FACILITIES#PRICES', 'FACILITIES#QUALITY',
+       'FOOD&DRINKS#MISCELLANEOUS', 'FOOD&DRINKS#PRICES',
+       'FOOD&DRINKS#QUALITY', 'FOOD&DRINKS#STYLE&OPTIONS', 'HOTEL#CLEANLINESS',
+       'HOTEL#COMFORT', 'HOTEL#DESIGN&FEATURES', 'HOTEL#GENERAL',
+       'HOTEL#MISCELLANEOUS', 'HOTEL#PRICES', 'HOTEL#QUALITY',
+       'LOCATION#GENERAL', 'ROOMS#CLEANLINESS', 'ROOMS#COMFORT',
+       'ROOMS#DESIGN&FEATURES', 'ROOMS#GENERAL', 'ROOMS#MISCELLANEOUS',
+       'ROOMS#PRICES', 'ROOMS#QUALITY', 'ROOM_AMENITIES#CLEANLINESS',
+       'ROOM_AMENITIES#COMFORT', 'ROOM_AMENITIES#DESIGN&FEATURES',
+       'ROOM_AMENITIES#GENERAL', 'ROOM_AMENITIES#MISCELLANEOUS',
+       'ROOM_AMENITIES#PRICES', 'ROOM_AMENITIES#QUALITY', 'SERVICE#GENERAL']
+        elif domain_type == 'vietlaptop':
+            l = ['AMBIENCE#GENERAL', 'DRINKS#PRICES', 'DRINKS#QUALITY',
+       'DRINKS#STYLE&OPTIONS', 'FOOD#PRICES', 'FOOD#QUALITY',
+       'FOOD#STYLE&OPTIONS', 'LOCATION#GENERAL', 'RESTAURANT#GENERAL',
+       'RESTAURANT#MISCELLANEOUS', 'RESTAURANT#PRICES', 'SERVICE#GENERAL']
 
         label_list.append(l)
         label_list.append(sentiment)
