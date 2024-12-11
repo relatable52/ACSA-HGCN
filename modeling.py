@@ -2030,7 +2030,7 @@ class GCNclassification(BertPreTrainedModel):
         sentiment_logits = torch.cat([self.classifier_senti[0](torch.unsqueeze(final_features[:, i, :], 1) ) for i in range(self.num_labels[0])], dim=1)
         category_logits = torch.cat([self.classifier_cate[i]((c_feature[:, i, :])) for i in range(self.num_labels[0])], dim=-1)
         
-        if (not cate_labels) or (not senti_labels):
+        if (cate_labels is None) or (senti_labels is None):
             return category_logits, sentiment_logits
         
         cate_loss_fct = BCEWithLogitsLoss()
